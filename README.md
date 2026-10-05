@@ -48,6 +48,11 @@
    ```bash
    git clone https://github.com/15372010668-dot/dsh-pet-whale.git ~/dsh-plugins/dsh-pet-whale
    ```
+   > HTTPS 连接不稳定时改用 SSH（默认 22 端口不通就走 443 备选）：
+   > ```bash
+   > git clone git@github.com:15372010668-dot/dsh-pet-whale.git ~/dsh-plugins/dsh-pet-whale
+   > git clone ssh://git@ssh.github.com:443/15372010668-dot/dsh-pet-whale.git ~/dsh-plugins/dsh-pet-whale
+   > ```
 2. 在 DSH profile 的 `package.json` 中引用：
    ```json
    {
