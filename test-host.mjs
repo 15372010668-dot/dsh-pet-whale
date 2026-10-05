@@ -15,7 +15,7 @@ import { createHost } from "./lib/index.js";
 const HERE = new URL(".", import.meta.url).pathname;
 const REAL_PETS = join(process.env.HOME, ".dsh", "pet-whale", "pets");
 
-const dataRoot = mkdtempSync(join(tmpdir(), "zkb-pet-test-"));
+const dataRoot = mkdtempSync(join(tmpdir(), "dsh-pet-whale-test-"));
 try {
   cpSync(REAL_PETS, join(dataRoot, "pets"), { recursive: true });
 } catch {
