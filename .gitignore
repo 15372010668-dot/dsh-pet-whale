@@ -21,3 +21,9 @@ Thumbs.db
 # Test artifacts
 playwright-report/
 test-results/
+
+# local preview tool
+preview.html
+preview-zh.html
+preview-en.html
+preview-features.html

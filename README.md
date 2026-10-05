@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/social-preview.png" alt="dsh-pet-whale" width="640">
+![](docs/images/social-preview.png)
 
 # dsh-pet-whale
 
