@@ -1,89 +1,88 @@
 <div align="center">
 
+<img src="docs/images/social-preview.png" alt="dsh-pet-whale" width="640">
+
 # dsh-pet-whale
 
-**A pixel blue-whale companion for DeepSeek Harness tasks**
+**一只陪你干活的像素蓝鲸，住在 DeepSeek Harness 里，也能游满整个桌面。**
 
-[简体中文](README.zh-CN.md) · [Apache-2.0](LICENSE) · [Feature guide](docs/FEATURES.md) · [Companion API](docs/companion-api.md)
+[简体中文](README.zh-CN.md) · [功能全览](docs/FEATURES.md) · [Companion API](docs/companion-api.md) · [Apache-2.0](LICENSE)
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![Node.js 22.19+](https://img.shields.io/badge/Node.js-22.19%2B-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
+![Node](https://img.shields.io/badge/node-22.19%2B-339933) ![License](https://img.shields.io/badge/license-Apache--2.0-blue) ![Platform](https://img.shields.io/badge/platform-macOS-black)
 
 </div>
 
-<p align="center">
-  <img src="assets/screenshots/bluewhale-running.png" alt="The blue whale companion running in the DSH page" width="360">
-</p>
+<!-- 首屏动图：悬浮模式，鲸鱼横渡屏幕、水帘垂到底部 -->
+<img src="docs/images/hero.gif" alt="dsh-pet-whale in action" width="100%">
 
-**dsh-pet-whale** is an independent in-page pet plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH). A pixel-style blue whale lives in the corner of the page while you work, keeps an eye on every task, and swims to you when something needs your attention.
+---
 
-It started as a fork of [`@michengai/dsh-codex-pet`](https://github.com/MichengAI/dsh-codex-pet) (via the `dsh-bluewhale-pet` fork) and is now developed as its own plugin — see [FORK.md](FORK.md) for the full lineage and everything that changed.
+## 这是什么
 
-## Features
+一个 DeepSeek Harness（DSH）桌宠插件。工作时它待在角落替你盯着任务：跑起来了它会巡游，出错会发抖冒火，要你审批会蹦跳提醒，完成了会顶着一条通到页底的水柱横渡整屏庆祝。
 
-- **In-page companion**: a blue whale stays in the corner of the DSH page while you work.
-- **Tasks at a glance**: running, waiting-for-you, failed, and completed tasks become notification bubbles; when everything is quiet, so is the whale.
-- **Act from the bubble**: open the conversation, stop the current turn, or answer approval / question / plan requests without leaving your current view.
-- **Head-pat interaction**: single-click the whale and it squashes happily while hearts float up (double-click to make it jump, drag to move it, right-click for the menu).
-- **Full-screen roaming**: while a task runs, the whale wanders the whole page along smooth arcs and swims back to its spot when the task ends (toggle + speed in settings).
-- **Keyboard & a11y friendly**: labelled controls, focus rings, and full support for `prefers-reduced-motion`.
-- **Custom pets**: drop your own Codex-protocol spritesheets into `~/.dsh/pet-whale/pets`, or generate new pets in DSH with the bundled skill.
-- **Scriptable**: the `window.dshPetWhale` companion API lets scripts observe task state and drive every action — see [docs/companion-api.md](docs/companion-api.md).
+它有两种形态：**住在 DSH 页面里**，或者**悬浮在整台电脑的一切窗口之上**（任意应用、任意全屏 Space，鲸鱼之外全部鼠标穿透）。
 
-## Installation
+## ✨ 亮点
 
-dsh-pet-whale is a personal plugin and is **not published to npm**. Install it into a DSH profile as a **`link:` local dependency**:
+- 🖥️ **桌面悬浮模式** —— 用 DSH 自带的运行时开出全屏透明置顶窗口，鲸鱼真正出圈
+- 🔔 **任务提醒** —— 运行中 / 等待审批 / 出错 / 完成，四种状态四种表现，审批和提问直接在气泡里处理
+- 🎭 **情绪反应** —— 失败抖动冒火、等待蹦跳、完成时全屏水帘庆祝
+- 🚿 **摇晃喷水** —— 抓住鲸鱼甩一甩，像素水帘从天而降、在屏幕底堆积摊平化光
+- 🎲 **摸头盲盒** —— 单击摸摸头，50% 冒爱心、50% 喷一股水
+- 🗺️ **自动巡航** —— 不定期离家溜达一圈，频率可调
+- 🧩 **可编程** —— `window.dshPetWhale` 脚本接口，任务状态和全部操作开放
 
-1. Clone or copy this repository somewhere permanent, e.g. `~/dsh-plugins/dsh-pet-whale`.
-2. Reference it in your DSH profile's `package.json`:
+完整功能与参数见 **[功能全览](docs/FEATURES.md)**。
 
+## 🖼️ 更多实拍
+
+<!-- 依次：悬浮鲸全屏 / 任务通知与审批 / 摸头盲盒 / 自动巡航 / 设置页 -->
+| | |
+| --- | --- |
+| ![悬浮模式](docs/images/showcase-overlay.png) | ![任务通知](docs/images/showcase-notifications.png) |
+| ![摸头盲盒](docs/images/showcase-pat.gif) | ![胜利巡游](docs/images/showcase-celebration.gif) |
+
+## 📦 安装
+
+1. 克隆本仓库到固定位置：
+   ```bash
+   git clone https://github.com/15372010668-dot/dsh-pet-whale.git ~/dsh-plugins/dsh-pet-whale
+   ```
+2. 在 DSH profile 的 `package.json` 中引用：
    ```json
    {
-     "dependencies": {
-       "dsh-pet-whale": "link:/absolute/path/dsh-pet-whale"
-     },
-     "dsh": {
-       "profile": {
-         "bundles": ["...", "dsh-pet-whale"]
-       }
-     }
+     "dependencies": { "dsh-pet-whale": "link:~/dsh-plugins/dsh-pet-whale" },
+     "dsh": { "profile": { "bundles": ["...", "dsh-pet-whale"] } }
    }
    ```
-
-3. Run `pnpm install --offline` in the profile directory (or let DSH install on boot).
-4. If DSH's version-compatibility check blocks the plugin, grant an exact-version exemption (adjust versions to yours):
-
+3. 在 profile 目录执行 `pnpm install --offline`，重启 DSH；
+4. ⚠️ **若被 DSH 版本校验静默拦截**（装了没反应），需按 manifest 授一次豁免：
    ```bash
-   dsh plugin --profile desktop allow-version dsh-pet-whale@1.0.0 --dsh-version 0.2.0-rc.2 --accept-risk
+   dsh plugin --profile desktop allow-version dsh-pet-whale@1.2.0 --dsh-version <你的DSH版本> --accept-risk
    ```
 
-5. Restart DSH, then open **Settings → Pets**.
+> 目前仅支持 macOS（悬浮模式依赖 DSH 自带的 Electron 运行时）。数据目录在 `~/.dsh/pet-whale/`，卸载不丢宠物。
 
-## Usage
+## 🎮 交互
 
-| Goal | Action |
+| 动作 | 反应 |
 | --- | --- |
-| Move / play | Drag to move; single-click to pat; double-click to jump. |
-| Read task updates | Read the notification bubbles; expand the list when several tasks need attention. |
-| Continue a conversation | Click a bubble to open the corresponding DSH task. |
-| Handle a request | Expand the request inside the bubble and answer it inline. |
-| Stop a turn | Click the stop control on a running task's bubble. |
-| Configure | Right-click the pet → Pet settings, or Settings → Pets. |
+| 单击 | 摸头：挥手压扁，50% 爱心 / 50% 喷水 |
+| 双击 | 跳跃 |
+| 拖动 | 移动位置（自动记忆）；摇晃会喷水 |
+| 右键 | 菜单：设置、收起、恢复通知等 |
 
-### Data & pets
-
-All data lives outside the package in `~/.dsh/pet-whale/` (`config.json` + `pets/`), so updating or reinstalling the plugin never touches your pets or settings.
-
-## Development
+## 🛠 开发
 
 ```bash
-node --check lib/index.js && node --check lib/client.js   # syntax
-node test-host.mjs    # host-side HTTP + config round-trip (uses a throwaway data dir)
-node test-roam.mjs    # roaming engine, sliced from the real client bundle
+npm run check   # 语法检查（4 个入口文件）
+npm test        # 69 项自动化测试：宿主 HTTP / 漫游引擎 / 通知状态机
+npm run sync    # 同步到本地 DSH 插件目录
 ```
 
-`lib/*.js` are esbuild artifacts edited directly; see [FORK.md](FORK.md) for the layout and the three places the plugin name must stay in sync.
+`lib/*.js` 为直接维护的 esbuild 产物，架构与血统说明见 [FORK.md](FORK.md)。
 
-## License
+## 📜 License
 
-Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for upstream attribution and the list of changes versus the original plugin.
+[Apache-2.0](LICENSE)。本项目是 [@michengai/dsh-codex-pet](https://github.com/MichengAI/dsh-codex-pet) 的衍生作品，上游署名与第三方素材声明见 [NOTICE](NOTICE)。

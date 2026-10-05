@@ -1,89 +1,88 @@
 <div align="center">
 
+<img src="docs/images/social-preview.png" alt="dsh-pet-whale" width="640">
+
 # dsh-pet-whale
 
-**一只陪你处理 DeepSeek Harness 任务的像素蓝鲸桌宠**
+**一只陪你干活的像素蓝鲸，住在 DeepSeek Harness 里，也能游满整个桌面。**
 
-[English](README.md) · [Apache-2.0](LICENSE) · [功能全览](docs/FEATURES.md) · [Companion API](docs/companion-api.md)
+[English](README.md) · [功能全览](docs/FEATURES.md) · [Companion API](docs/companion-api.md) · [Apache-2.0](LICENSE)
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![Node.js 22.19+](https://img.shields.io/badge/Node.js-22.19%2B-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org/)
+![Node](https://img.shields.io/badge/node-22.19%2B-339933) ![License](https://img.shields.io/badge/license-Apache--2.0-blue) ![Platform](https://img.shields.io/badge/platform-macOS-black)
 
 </div>
 
-<p align="center">
-  <img src="assets/screenshots/bluewhale-running.png" alt="蓝鲸桌宠在 DSH 页面中运行的效果" width="360">
-</p>
+<!-- 首屏动图：悬浮模式，鲸鱼横渡屏幕、水帘垂到底部 -->
+<img src="docs/images/hero.gif" alt="dsh-pet-whale in action" width="100%">
 
-**dsh-pet-whale** 是一款运行在 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）中的**独立**页内桌宠插件。工作时让一头像素蓝鲸陪在页面角落，随时查看任务进展、处理需要你关注的请求。
+---
 
-它源自 [`@michengai/dsh-codex-pet`](https://github.com/MichengAI/dsh-codex-pet)（中间经过 `dsh-bluewhale-pet` fork），现在作为独立插件开发——完整来历与改动清单见 [FORK.md](FORK.md)。
+## 这是什么
 
-## 功能
+一个 DeepSeek Harness（DSH）桌宠插件。工作时它待在角落替你盯着任务：跑起来了它会巡游，出错会发抖冒火，要你审批会蹦跳提醒，完成了会顶着一条通到页底的水柱横渡整屏庆祝。
 
-- **页内陪伴**：蓝鲸待在 DSH 页面角落陪你干活。
-- **任务一目了然**：运行中、等待你处理、出错、完成的任务会变成通知气泡；没有事的时候鲸鱼也安安静静。
-- **气泡上直接操作**：打开对应会话、停止当前轮次、直接在气泡里处理审批 / 提问 / 计划确认，不用切走当前视图。
-- **摸摸头互动**：单击鲸鱼，它会开心地压扁一下，头顶冒出爱心（双击跳跃、拖动移动、右键菜单）。
-- **全屏漫游**：任务运行时鲸鱼沿平滑弧线在整个页面游走，任务结束自动游回原位（开关与速度可在设置中调整）。
-- **键盘与无障碍**：完整的控件标注、焦点环，并尊重 `prefers-reduced-motion`。
-- **自定义宠物**：把符合 Codex 协议的图集放进 `~/.dsh/pet-whale/pets`，或用随包 Skill 在 DSH 会话里生成新宠物。
-- **可脚本控制**：`window.dshPetWhale` companion API 让脚本读取任务状态、执行所有操作——见 [docs/companion-api.md](docs/companion-api.md)。
+它有两种形态：**住在 DSH 页面里**，或者**悬浮在整台电脑的一切窗口之上**（任意应用、任意全屏 Space，鲸鱼之外全部鼠标穿透）。
 
-## 安装
+## ✨ 亮点
 
-dsh-pet-whale 是个人插件，**不发布到 npm**，以 **`link:` 本地依赖**装进 DSH profile：
+- 🖥️ **桌面悬浮模式** —— 用 DSH 自带的运行时开出全屏透明置顶窗口，鲸鱼真正出圈
+- 🔔 **任务提醒** —— 运行中 / 等待审批 / 出错 / 完成，四种状态四种表现，审批和提问直接在气泡里处理
+- 🎭 **情绪反应** —— 失败抖动冒火、等待蹦跳、完成时全屏水帘庆祝
+- 🚿 **摇晃喷水** —— 抓住鲸鱼甩一甩，像素水帘从天而降、在屏幕底堆积摊平化光
+- 🎲 **摸头盲盒** —— 单击摸摸头，50% 冒爱心、50% 喷一股水
+- 🗺️ **自动巡航** —— 不定期离家溜达一圈，频率可调
+- 🧩 **可编程** —— `window.dshPetWhale` 脚本接口，任务状态和全部操作开放
 
-1. 把本仓库放到固定位置，例如 `~/dsh-plugins/dsh-pet-whale`。
-2. 在 profile 的 `package.json` 里引用：
+完整功能与参数见 **[功能全览](docs/FEATURES.md)**。
 
+## 🖼️ 更多实拍
+
+<!-- 依次：悬浮鲸全屏 / 任务通知与审批 / 摸头盲盒 / 自动巡航 / 设置页 -->
+| | |
+| --- | --- |
+| ![悬浮模式](docs/images/showcase-overlay.png) | ![任务通知](docs/images/showcase-notifications.png) |
+| ![摸头盲盒](docs/images/showcase-pat.gif) | ![胜利巡游](docs/images/showcase-celebration.gif) |
+
+## 📦 安装
+
+1. 克隆本仓库到固定位置：
+   ```bash
+   git clone https://github.com/15372010668-dot/dsh-pet-whale.git ~/dsh-plugins/dsh-pet-whale
+   ```
+2. 在 DSH profile 的 `package.json` 中引用：
    ```json
    {
-     "dependencies": {
-       "dsh-pet-whale": "link:/绝对路径/dsh-pet-whale"
-     },
-     "dsh": {
-       "profile": {
-         "bundles": ["...", "dsh-pet-whale"]
-       }
-     }
+     "dependencies": { "dsh-pet-whale": "link:~/dsh-plugins/dsh-pet-whale" },
+     "dsh": { "profile": { "bundles": ["...", "dsh-pet-whale"] } }
    }
    ```
-
-3. 在 profile 目录执行 `pnpm install --offline`（或让 DSH 启动时自动安装）。
-4. 如果被 DSH 的版本兼容校验拦下，给确切版本授豁免（按你的实际版本调整）：
-
+3. 在 profile 目录执行 `pnpm install --offline`，重启 DSH；
+4. ⚠️ **若被 DSH 版本校验静默拦截**（装了没反应），需按 manifest 授一次豁免：
    ```bash
-   dsh plugin --profile desktop allow-version dsh-pet-whale@1.0.0 --dsh-version 0.2.0-rc.2 --accept-risk
+   dsh plugin --profile desktop allow-version dsh-pet-whale@1.2.0 --dsh-version <你的DSH版本> --accept-risk
    ```
 
-5. 重启 DSH，打开 **设置 → 宠物**。
+> 目前仅支持 macOS（悬浮模式依赖 DSH 自带的 Electron 运行时）。数据目录在 `~/.dsh/pet-whale/`，卸载不丢宠物。
 
-## 使用
+## 🎮 交互
 
-| 目标 | 操作 |
+| 动作 | 反应 |
 | --- | --- |
-| 移动 / 玩 | 拖动移动；单击摸摸头；双击跳跃。 |
-| 看任务动态 | 看通知气泡；多个任务时展开列表。 |
-| 继续会话 | 点气泡打开对应 DSH 任务。 |
-| 处理请求 | 在气泡内展开请求并直接作答。 |
-| 停止轮次 | 点运行中任务气泡上的停止按钮。 |
-| 配置 | 右键宠物 → 宠物设置，或 设置 → 宠物。 |
+| 单击 | 摸头：挥手压扁，50% 爱心 / 50% 喷水 |
+| 双击 | 跳跃 |
+| 拖动 | 移动位置（自动记忆）；摇晃会喷水 |
+| 右键 | 菜单：设置、收起、恢复通知等 |
 
-### 数据与宠物
-
-所有数据都在包外的 `~/.dsh/pet-whale/`（`config.json` + `pets/`），更新或重装插件都不会碰你的宠物和设置。
-
-## 开发
+## 🛠 开发
 
 ```bash
-node --check lib/index.js && node --check lib/client.js   # 语法自查
-node test-host.mjs    # 宿主侧 HTTP + 配置读写（用临时目录，不碰真实数据）
-node test-roam.mjs    # 漫游引擎（从真实 bundle 切片驱动）
+npm run check   # 语法检查（4 个入口文件）
+npm test        # 69 项自动化测试：宿主 HTTP / 漫游引擎 / 通知状态机
+npm run sync    # 同步到本地 DSH 插件目录
 ```
 
-`lib/*.js` 是直接编辑的 esbuild 产物；目录结构和「插件名必须同步的三处位置」见 [FORK.md](FORK.md)。
+`lib/*.js` 为直接维护的 esbuild 产物，架构与血统说明见 [FORK.md](FORK.md)。
 
-## 许可
+## 📜 License
 
-基于 [Apache License 2.0](LICENSE) 授权。上游署名与相对原插件的改动清单见 [NOTICE](NOTICE)。
+[Apache-2.0](LICENSE)。本项目是 [@michengai/dsh-codex-pet](https://github.com/MichengAI/dsh-codex-pet) 的衍生作品，上游署名与第三方素材声明见 [NOTICE](NOTICE)。
