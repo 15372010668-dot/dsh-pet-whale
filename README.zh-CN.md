@@ -13,7 +13,7 @@
 </div>
 
 <!-- 首屏动图：悬浮模式，鲸鱼横渡屏幕、水帘垂到底部 -->
-<img src="docs/images/hero.gif" alt="dsh-pet-whale in action" width="100%">
+<video src="docs/images/hero.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
@@ -37,11 +37,10 @@
 
 ## 🖼️ 更多实拍
 
-<!-- 依次：悬浮鲸全屏 / 任务通知与审批 / 摸头盲盒 / 自动巡航 / 设置页 -->
+<!-- 依次：悬浮鲸全屏 / 摸头盲盒（爱心与喷水） -->
 | | |
 | --- | --- |
-| ![悬浮模式](docs/images/showcase-overlay.png) | ![任务通知](docs/images/showcase-notifications.png) |
-| ![摸头盲盒](docs/images/showcase-pat.gif) | ![胜利巡游](docs/images/showcase-celebration.gif) |
+| ![悬浮模式](docs/images/showcase-overlay.png) | <video src="docs/images/showcase-pat.mp4" muted loop playsinline controls width="100%"></video> |
 
 ## 📦 安装
 
