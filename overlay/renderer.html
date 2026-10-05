@@ -1,0 +1,477 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; width: 100vw; height: 100vh;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif; cursor: default; }
+  #stage { position: fixed; inset: 0; }
+  #bubble { position: fixed; max-width: 240px; padding: 10px 16px; border: 1px solid #4b6b84; border-radius: 28px;
+    background: rgba(20, 32, 44, .92); color: #d7e6f2; box-shadow: 0 2px 12px #0004; pointer-events: none;
+    display: none; z-index: 5; }
+  #bubble strong { display: block; font-size: 12px; max-width: 208px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #bubble span { display: block; font-size: 12px; color: #9db8cc; margin-top: 1px; }
+  #menu { position: fixed; width: 160px; padding: 6px; border: 1px solid #4b6b84; border-radius: 10px;
+    background: rgba(20, 32, 44, .96); color: #d7e6f2; box-shadow: 0 8px 32px #0006; display: none; z-index: 6; }
+  #menu button { display: block; width: 100%; text-align: left; padding: 8px; border: 0; border-radius: 5px;
+    background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+  #menu button:hover { background: rgba(255, 255, 255, .1); }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="bubble"><strong></strong><span></span></div>
+<div id="menu"></div>
+<script>
+"use strict";
+const query = new URLSearchParams(location.search);
+const PORT = query.get("port"), TOKEN = query.get("token");
+const BASE = `http://127.0.0.1:${PORT}`;
+const stage = document.getElementById("stage");
+const ctx = stage.getContext("2d");
+const bubble = document.getElementById("bubble");
+const menuEl = document.getElementById("menu");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const ANIMATIONS = {
+  idle: { row: 0, durations: [280, 110, 110, 140, 140, 320] },
+  "running-right": { row: 1, durations: [120, 120, 120, 120, 120, 120, 120, 220] },
+  "running-left": { row: 2, durations: [120, 120, 120, 120, 120, 120, 120, 220] },
+  waving: { row: 3, durations: [140, 140, 140, 280] },
+  jumping: { row: 4, durations: [140, 140, 140, 140, 280] },
+  failed: { row: 5, durations: [140, 140, 140, 140, 140, 140, 140, 240] },
+  waiting: { row: 6, durations: [150, 150, 150, 150, 150, 260] },
+  running: { row: 7, durations: [120, 120, 120, 120, 120, 220] },
+  review: { row: 8, durations: [150, 150, 150, 150, 150, 280] }
+};
+const SPOUT_COLORS = ["#8fd3ff", "#5cb8ff", "#3d9df0", "#cdefff"];
+
+const state = {
+  config: { visible: true, size: 120, roam: false, roamSpeed: 48, position: null },
+  activity: null,
+  pet: { id: "bluewhale", version: 2, name: "小蓝鲸" },
+  overlayPosition: null
+};
+let failCount = 0, menuOpen = false;
+let fxKind = null, fxUntil = 0, flameUntil = 0, prevPose = "";
+let celeb = null;
+let patrol = null, nextPatrolAt = 0, patrolEverySeen = null;
+let pos = { x: innerWidth - 136, y: 24 };
+let action = null, actionUntil = 0, frameIdx = 0, lastFrame = 0, lastAnim = null;
+let look = null, squashUntil = 0, dragging = null;
+const hearts = [];
+const roam = { x: null, y: null, tx: null, ty: null, heading: null };
+const sprite = new Image();
+let spriteReady = false, spritePetId = "";
+const drops = [];
+let pileCols = new Float32Array(1);
+let colW = 8, grid = 4, lastSettle = -1e9, pending = 0, nextEmit = 0;
+
+function sizeCanvas() {
+  stage.width = innerWidth;
+  stage.height = innerHeight;
+}
+function fitPile() {
+  const n = Math.max(1, Math.ceil(stage.width / colW));
+  if (pileCols.length !== n) {
+    const next = new Float32Array(n);
+    next.set(pileCols.subarray(0, Math.min(pileCols.length, n)));
+    pileCols = next;
+  }
+}
+sizeCanvas();
+
+function petH() { return state.config.size * 208 / 192; }
+function boundsX() { return Math.max(0, innerWidth - state.config.size - 16); }
+function boundsY() { return Math.max(0, innerHeight - petH() - 32); }
+function homePos() {
+  const c = state.config.position ?? state.overlayPosition;
+  return { x: (c ? c.x : 1) * boundsX(), y: (c ? c.y : 0) * boundsY() };
+}
+function petRect() {
+  return { l: pos.x, t: pos.y, r: pos.x + state.config.size, b: pos.y + petH() };
+}
+function lookCell(dx, dy) {
+  if (Math.hypot(dx, dy) < 28) return null;
+  const index = Math.round((Math.atan2(dx, -dy) + Math.PI * 2) % (Math.PI * 2) / (Math.PI / 8)) % 16;
+  return { row: 9 + Math.floor(index / 8), col: index % 8 };
+}
+
+async function poll() {
+  try {
+    const res = await fetch(`${BASE}/state?token=${TOKEN}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("bad status");
+    const value = await res.json();
+    Object.assign(state, value);
+    failCount = 0;
+    const pose = state.activity?.pose ?? "";
+    if (pose !== prevPose) {
+      const now = performance.now();
+      if (pose === "failed") { fxKind = "shake"; fxUntil = now + 4200; flameUntil = fxUntil; }
+      else if (pose === "waiting") { fxKind = "bounce"; fxUntil = now + 5000; }
+      else if (pose === "review" && !reduced) { celeb = { phase: "toTop", acc: 0 }; }
+      if (pose === "running") celeb = null;
+      prevPose = pose;
+    }
+    if (state.pet && state.pet.id !== spritePetId) {
+      spritePetId = state.pet.id;
+      spriteReady = false;
+      sprite.src = `${BASE}/sprite?token=${TOKEN}`;
+    }
+  } catch {
+    failCount += 1;
+    if (failCount >= 4) window.close();
+  }
+}
+setInterval(poll, 1500);
+poll();
+sprite.onload = () => { spriteReady = true; };
+sprite.onerror = () => { spriteReady = false; };
+
+async function postConfig(value) {
+  try { await fetch(`${BASE}/config?token=${TOKEN}`, { method: "POST", body: JSON.stringify(value) }); } catch {}
+}
+let saveTimer = 0;
+function savePosition() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    fetch(`${BASE}/position?token=${TOKEN}`, {
+      method: "POST",
+      body: JSON.stringify({ x: pos.x / Math.max(1, boundsX()), y: pos.y / Math.max(1, boundsY()) })
+    }).catch(() => {});
+  }, 400);
+}
+
+function perform(pose) { action = pose; actionUntil = performance.now() + ANIMATIONS[pose].durations.reduce((a, b) => a + b, 0); }
+function doPat() {
+  perform("waving");
+  squashUntil = performance.now() + 900;
+  if (Math.random() < 0.5) {
+    spoutBurst();
+    return;
+  }
+  for (let i = 0; i < 3; i++)
+    hearts.push({ x: pos.x + state.config.size * (0.3 + 0.2 * i), y: pos.y + petH() * 0.25, vy: -60 - Math.random() * 30, life: 1, delay: i * 0.13 });
+}
+function spoutBurst(wavesOverride) {
+  if (reduced || state.config.visible === false) return;
+  if (drops.length > 1600) return;
+  lastSettle = performance.now();
+  pending = Math.max(1, Math.min(8, wavesOverride ?? state.config.spoutAmount ?? 3));
+  nextEmit = 0;
+}
+function emitWave() {
+  if (drops.length > 1600) return;
+  const ox = pos.x + state.config.size / 2, oy = pos.y + 6;
+  const power = Math.max(50, Math.min(200, state.config.spoutPower ?? 100));
+  const stream = celeb ? true : false;
+  const count = stream ? 96 : 68;
+  for (let i = 0; i < count; i++) {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.3;
+    const speed = (260 + Math.random() * 380) * (power / 100);
+    const falling = stream && i % 2 === 0;
+    drops.push({
+      x: ox + (Math.random() - 0.5) * (stream ? 26 : 20), y: oy + Math.random() * 6,
+      vx: falling ? (Math.random() - 0.5) * 40 : Math.cos(angle) * speed,
+      vy: falling ? 80 + Math.random() * 120 : Math.sin(angle) * speed,
+      s: 3 + ((Math.random() * 2) | 0) * 2,
+      color: SPOUT_COLORS[(Math.random() * SPOUT_COLORS.length) | 0],
+      phase: Math.random() * Math.PI * 2, freq: 5 + Math.random() * 6
+    });
+  }
+}
+
+let lastT = 0, roamAcc = 0, roamDir = null;
+function tick(time) {
+  requestAnimationFrame(tick);
+  if (stage.width !== innerWidth || stage.height !== innerHeight) sizeCanvas();
+  fitPile();
+  const dt = Math.min(48, time - lastT) / 1000;
+  lastT = time;
+  ctx.clearRect(0, 0, stage.width, stage.height);
+  ctx.imageSmoothingEnabled = false;
+  const size = state.config.size, ph = petH();
+  const bx = boundsX(), by = boundsY();
+
+  // ---- patrol scheduler ----
+  const patrolEvery = state.config.patrolEvery ?? 15;
+  if (patrolEverySeen !== patrolEvery) {
+    patrolEverySeen = patrolEvery;
+    nextPatrolAt = time + patrolEvery * 60000 * (0.75 + Math.random() * 0.5);
+  }
+  if (patrol && time >= patrol.until) { patrol = null; roam.tx = null; }
+  if (patrol && time >= patrol.nextSpout) {
+    patrol.nextSpout = time + 4000 + Math.random() * 4000;
+    spoutBurst(1 + Math.floor(Math.random() * Math.max(1, state.config.spoutAmount ?? 3)));
+  }
+  if (!patrol && !reduced && !dragging && !menuOpen && !celeb && state.config.visible !== false && (state.activity?.pose ?? "idle") === "idle" && time >= nextPatrolAt) {
+    patrol = { until: time + 20000 + Math.random() * 20000, nextSpout: time + 2500 + Math.random() * 3000 };
+    roam.x = null; roam.tx = null;
+  }
+
+  // ---- celebration / roam / home movement ----
+  const running = state.activity?.pose === "running";
+  const roaming = ((running && state.config.roam) || !!patrol) && !reduced && !dragging && !menuOpen;
+  if (celeb && !dragging && !menuOpen) {
+    const targetY = 160;
+    const roamSpd = Math.max(8, Math.min(240, state.config.roamSpeed ?? 48));
+    const toTopSpd = Math.max(25, Math.min(130, Math.round(roamSpd * 0.55)));
+    const crossSpd = Math.max(60, Math.min(250, Math.round(roamSpd * 2.3)));
+    let tx, ty, spd;
+    if (celeb.phase === "toTop") { tx = 0; ty = targetY; spd = toTopSpd; }
+    else { tx = bx; ty = targetY; spd = crossSpd; }
+    const dx = tx - pos.x, dy = ty - pos.y, dist = Math.hypot(dx, dy), stepLen = spd * dt;
+    if (celeb.phase === "toTop" && dist <= Math.max(1.5, stepLen)) {
+      celeb.phase = "cross";
+      pos = { x: 0, y: targetY }; roam.x = 0; roam.y = targetY; roam.tx = null;
+    } else if (celeb.phase === "cross") {
+      celeb.acc += dt;
+      if (celeb.acc >= 0.25) { celeb.acc = 0; emitWave(); }
+      if (pos.x >= bx - 2) { celeb = null; roam.tx = null; }
+    }
+    if (celeb && dist > 0.5) {
+      const len = Math.min(dist, stepLen);
+      pos = { x: Math.max(0, Math.min(bx, pos.x + dx / dist * len)), y: Math.max(0, Math.min(by, pos.y + dy / dist * len)) };
+      roam.x = pos.x; roam.y = pos.y;
+      const next = dx < -2 ? "running-left" : dx > 2 ? "running-right" : null;
+      if (next !== roamDir) { roamDir = next; action = null; }
+    }
+  } else if (!celeb) {
+  if (roaming) {
+    if (roam.x === null) { roam.x = Math.max(0, Math.min(bx, pos.x)); roam.y = Math.max(0, Math.min(by, pos.y)); }
+    if (roam.tx === null) {
+      if (roam.heading === null) roam.heading = Math.random() * Math.PI * 2;
+      roam.heading += (Math.random() - 0.5) * 1.5;
+      const reach = 140 + Math.random() * 240;
+      let nx = roam.x + Math.cos(roam.heading) * reach, ny = roam.y + Math.sin(roam.heading) * reach;
+      if (nx < 24 || nx > bx - 24) { roam.heading = Math.PI - roam.heading; nx = roam.x + Math.cos(roam.heading) * reach; }
+      if (ny < 24 || ny > by - 24) { roam.heading = -roam.heading; ny = roam.y + Math.sin(roam.heading) * reach; }
+      roam.tx = Math.max(0, Math.min(bx, nx)); roam.ty = Math.max(0, Math.min(by, ny));
+    }
+  }
+  const speed = Math.max(8, Math.min(240, state.config.roamSpeed ?? 48));
+  if (roam.x !== null) {
+    const tx = roaming ? roam.tx : homePos().x, ty = roaming ? roam.ty : homePos().y;
+    const dx = tx - roam.x, dy = ty - roam.y, dist = Math.hypot(dx, dy), stepLen = speed * dt;
+    if (!roaming && dist <= Math.max(1.5, stepLen)) {
+      roam.x = tx; roam.y = ty; roam.tx = null;
+      pos = { x: tx, y: ty };
+      if (roamDir !== null) { roamDir = null; action = null; }
+    } else if (dist > 0.5) {
+      const len = Math.min(dist, stepLen);
+      roam.x = Math.max(0, Math.min(bx, roam.x + dx / dist * len));
+      roam.y = Math.max(0, Math.min(by, roam.y + dy / dist * len));
+      if (Math.abs(dx) > 2) {
+        const next = dx < 0 ? "running-left" : "running-right";
+        if (next !== roamDir) { roamDir = next; action = null; }
+      }
+    }
+    if (roaming && dist < 8) roam.tx = null;
+    roamAcc += dt;
+    if (roamAcc >= 0.033) { roamAcc = 0; pos = { x: roam.x, y: roam.y }; }
+  }
+  }
+
+  // ---- pose selection ----
+  let pose = action ?? (roamDir ?? "idle");
+  if (!action && !roamDir) {
+    const p = state.activity?.pose;
+    pose = p === "waiting" ? "waiting" : p === "failed" ? "failed" : p === "review" ? "review" : p === "running" ? "running" : "idle";
+  }
+
+  // ---- hearts ----
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    const h = hearts[i];
+    if (h.delay > 0) { h.delay -= dt; continue; }
+    h.y += h.vy * dt; h.life -= dt / 0.95;
+    if (h.life <= 0) { hearts.splice(i, 1); continue; }
+    ctx.globalAlpha = Math.min(1, h.life);
+    ctx.fillStyle = "#ff6b9d";
+    const hx = Math.floor(h.x / grid) * grid, hy = Math.floor(h.y / grid) * grid;
+    ctx.fillRect(hx, hy, 4, 4); ctx.fillRect(hx - 4, hy - 4, 4, 4); ctx.fillRect(hx + 4, hy - 4, 4, 4);
+    ctx.fillRect(hx, hy + 4, 4, 4); ctx.fillRect(hx - 4, hy, 4, 4); ctx.fillRect(hx + 4, hy, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- spout: emit, update drops, pile ----
+  if (state.config.visible === false) return;
+  if (pending > 0 && time >= nextEmit) { emitWave(); pending -= 1; nextEmit = time + 150; }
+  const alpha = Math.max(0, 1 - Math.max(0, time - lastSettle - 1200) / 5200);
+  const pile = pileCols;
+  if (pile.length > 1) {
+    for (let i = 0; i < pile.length; i++) {
+      pile[i] = Math.max(0, pile[i] - dt * 4);
+      const l = pile[i - 1] ?? pile[i], r = pile[i + 1] ?? pile[i];
+      pile[i] = Math.min(150, pile[i] + (l + r - 2 * pile[i]) * Math.min(1, dt * 2.4));
+    }
+  }
+  if (alpha > 0 && pile.length > 1) {
+    for (let i = 0; i < pile.length; i++) {
+      const h2 = pile[i];
+      if (h2 < 1) continue;
+      const blocks = Math.round(h2 / grid);
+      for (let b = 0; b < blocks; b++) {
+        ctx.globalAlpha = alpha * (0.72 + 0.28 * (1 - b / Math.max(1, blocks)));
+        ctx.fillStyle = b === blocks - 1 ? "#cdefff" : "#5cb8ff";
+        ctx.fillRect(i * colW, stage.height - (b + 1) * grid, colW, grid);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  const keep = [];
+  for (const d of drops) {
+    d.vy += 1050 * dt;
+    d.vx += Math.sin(time / 1000 * d.freq + d.phase) * 26 * dt;
+    d.vx *= 1 - 0.35 * dt;
+    d.x += d.vx * dt; d.y += d.vy * dt;
+    const col = Math.max(0, Math.min(pile.length - 1, Math.floor(d.x / colW)));
+    const floor = stage.height - pile[col];
+    if (d.y >= floor - grid / 2) {
+      if (pile[col] < 150) pile[col] += 4;
+      lastSettle = time;
+      continue;
+    }
+    ctx.fillStyle = d.color;
+    ctx.fillRect(Math.floor(d.x / grid) * grid, Math.floor(d.y / grid) * grid, d.s, d.s);
+    keep.push(d);
+  }
+  drops.length = 0; drops.push(...keep);
+
+  // ---- whale ----
+  if (spriteReady && state.config.visible !== false) {
+    const anim = ANIMATIONS[pose] ?? ANIMATIONS.idle;
+    if (anim !== lastAnim) {
+      lastAnim = anim;
+      frameIdx = 0;
+      lastFrame = time;
+    }
+    if (time - lastFrame >= (anim.durations[frameIdx] ?? anim.durations[0])) {
+      lastFrame = time;
+      frameIdx = (frameIdx + 1) % anim.durations.length;
+    }
+    const useLook = !action && !roamDir && look && state.pet.version === 2;
+    const row = useLook ? look.row : anim.row;
+    const col = useLook ? look.col : frameIdx;
+    const squash = time < squashUntil ? 1 + 0.06 * Math.sin((squashUntil - time) / 900 * Math.PI * 2) : 1;
+    let fxX = 0, fxY = 0;
+    if (time < fxUntil) {
+      if (fxKind === "shake") fxX = Math.sin(time / 28) * size * 0.06;
+      else fxY = -Math.abs(Math.sin(time / 170)) * ph * 0.2;
+    }
+    ctx.save();
+    ctx.translate(pos.x + size / 2 + fxX, pos.y + ph + fxY);
+    ctx.scale(squash, 2 - squash);
+    ctx.drawImage(sprite, col * 192, row * 208, 192, 208, -size / 2, -ph, size, ph);
+    ctx.restore();
+    if (time < flameUntil) {
+      ctx.font = `${Math.max(18, size * 0.28)}px serif`;
+      ctx.globalAlpha = 0.7 + 0.3 * Math.abs(Math.sin(time / 130));
+      ctx.fillText("🔥", pos.x + size * 0.72 + fxX, pos.y - 6);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---- bubble ----
+  const act = state.activity;
+  if (act && act.pose && act.pose !== "idle" && act.pose !== "review" && act.text) {
+    bubble.style.display = "block";
+    const top = pos.y < 84 ? pos.y + ph + 16 : pos.y - 16;
+    bubble.style.left = `${Math.min(innerWidth - 260, Math.max(8, pos.x + size - 220))}px`;
+    bubble.style.top = `${top}px`;
+    bubble.style.transform = `translateY(${pos.y < 84 ? 0 : -100}%)`;
+    if (bubble.dataset.key !== `${act.id}:${act.text}`) {
+      bubble.dataset.key = `${act.id}:${act.text}`;
+      bubble.querySelector("strong").textContent = act.title || "";
+      bubble.querySelector("span").textContent = act.text;
+    }
+  } else bubble.style.display = "none";
+}
+requestAnimationFrame(tick);
+
+// ---- input ----
+let clickThrough = true;
+function overPet(e) {
+  const r = petRect();
+  const pad = menuOpen ? 220 : 10;
+  return e.clientX >= r.l - pad && e.clientX <= r.r + pad && e.clientY >= r.t - (menuOpen ? 160 : 10) && e.clientY <= r.b + 10;
+}
+window.addEventListener("mousemove", (e) => {
+  const over = overPet(e) || menuOpen;
+  if (over !== !clickThrough) { clickThrough = !over; overlayAPI.setClickThrough(clickThrough); }
+  if (dragging) {
+    const dx = e.screenX - dragging.x, dy = e.screenY - dragging.y;
+    dragging.travel += Math.abs(dx);
+    if (dragging.lastDx && Math.sign(dx) !== Math.sign(dragging.lastDx) && Math.abs(dx) > 3) {
+      dragging.flips += 1;
+      if (dragging.flips >= 2) { dragging.flips = 0; spoutBurst(); }
+    }
+    if (dx) dragging.lastDx = dx;
+    if (!dragging.traveled && dragging.travel > 700) { dragging.traveled = true; spoutBurst(); }
+    if (dragging.moved || Math.hypot(e.screenX - dragging.sx, e.screenY - dragging.sy) > 4) dragging.moved = true;
+    if (dragging.moved) {
+      look = null;
+      pos = {
+        x: Math.max(0, Math.min(boundsX(), dragging.left + e.screenX - dragging.sx)),
+        y: Math.max(0, Math.min(boundsY(), dragging.top + e.screenY - dragging.sy))
+      };
+      roam.x = null; roam.tx = null;
+    }
+    dragging.x = e.screenX; dragging.y = e.screenY;
+  } else if (!action && state.pet.version === 2 && state.activity?.pose !== "running") {
+    const cell = lookCell(e.clientX - pos.x - state.config.size / 2, e.clientY - pos.y - petH() / 2);
+    if ((look?.row ?? -1) !== (cell?.row ?? -1) || (look?.col ?? -1) !== (cell?.col ?? -1)) look = cell;
+  }
+});
+window.addEventListener("mousedown", (e) => {
+  if (e.button !== 0) return;
+  if (menuOpen) {
+    if (!menuEl.contains(e.target)) closeMenu();
+    return;
+  }
+  if (!overPet(e)) return;
+  patrol = null;
+  roam.x = null; roam.tx = null;
+  nextPatrolAt = performance.now() + Math.max(5, state.config.patrolEvery ?? 15) * 60000 * (0.75 + Math.random() * 0.5);
+  dragging = { x: e.screenX, y: e.screenY, sx: e.screenX, sy: e.screenY, left: pos.x, top: pos.y, moved: false, flips: 0, lastDx: 0, travel: 0, traveled: false };
+});
+window.addEventListener("mouseup", () => {
+  const d = dragging;
+  dragging = null;
+  if (!d) return;
+  if (d.moved) {
+    savePosition();
+    state.overlayPosition = { x: pos.x / Math.max(1, boundsX()), y: pos.y / Math.max(1, boundsY()) };
+  } else doPat();
+});
+window.addEventListener("dblclick", (e) => {
+  if (!menuOpen && overPet(e)) { perform("jumping"); e.preventDefault(); }
+});
+window.addEventListener("contextmenu", (e) => {
+  if (!overPet(e)) return;
+  e.preventDefault();
+  openMenu(e.clientX, e.clientY);
+});
+function openMenu(x, y) {
+  menuOpen = true;
+  overlayAPI.setClickThrough(false);
+  menuEl.innerHTML = "";
+  for (const [label, fn] of [
+    ["摸摸头", () => doPat()],
+    ["跳一跳", () => perform("jumping")],
+    ["游回原位", () => { const h = homePos(); pos = { x: h.x, y: h.y }; roam.x = null; roam.tx = null; savePosition(); }],
+    ["收起悬浮鲸", () => postConfig({ overlay: false })]
+  ]) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.addEventListener("click", () => { fn(); closeMenu(); });
+    menuEl.append(btn);
+  }
+  menuEl.style.display = "block";
+  menuEl.style.left = `${Math.min(innerWidth - 170, x)}px`;
+  menuEl.style.top = `${Math.max(8, y - 190)}px`;
+}
+function closeMenu() { menuOpen = false; menuEl.style.display = "none"; overlayAPI.setClickThrough(true); }
+overlayAPI.setClickThrough(true);
+</script>
+</body>
+</html>

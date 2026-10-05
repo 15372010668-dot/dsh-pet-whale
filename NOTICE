@@ -1,0 +1,33 @@
+dsh-pet-whale
+Copyright 2026 dsh-pet-whale contributors
+
+This project is a derivative work of "@michengai/dsh-codex-pet" by MichengAI
+contributors (https://github.com/MichengAI/dsh-codex-pet), redistributed and
+modified under the Apache License, Version 2.0. The modifications made in
+this project are declared per section 4(b) of that license and are
+documented in CHANGELOG.md and FORK.md. This project is not affiliated
+with, or endorsed by, MichengAI, OpenAI, or DeepSeek.
+
+Third-party artwork: the built-in sprite sheet under
+assets/codex/bluewhale/ originates from the OpenAI Codex pet artwork set and
+is not original artwork of this project. The Apache License 2.0 of this
+project does not grant new rights to that third-party artwork or its
+trademarks; those rights remain with their respective owners.
+
+Original plugin code is licensed under the Apache License, Version 2.0
+(see LICENSE).
+
+--------------------------------------------------------------------------
+
+中文声明
+
+dsh-pet-whale 是 MichengAI 贡献者的 "@michengai/dsh-codex-pet"
+（https://github.com/MichengAI/dsh-codex-pet）的衍生作品，依据 Apache
+License 2.0 第 4(b) 条在此声明其修改，修改内容详见 CHANGELOG.md 与 FORK.md。
+本项目与 MichengAI、OpenAI、DeepSeek 均无关联，亦非其官方产品。
+
+第三方素材：内置图集 assets/codex/bluewhale/ 源自 OpenAI Codex 宠物图集，
+并非本项目原创素材。本项目的 Apache License 2.0 不为该第三方素材授予新的
+许可或商标权，其权利归原权利人所有。
+
+本项目原创插件代码采用 Apache License 2.0 授权，详见 LICENSE。
