@@ -162,7 +162,7 @@ function spoutBurst(wavesOverride) {
 }
 function emitWave() {
   if (drops.length > 1600) return;
-  const ox = pos.x + state.config.size / 2, oy = pos.y + 6;
+  const ox = pos.x + state.config.size * 0.28, oy = pos.y + petH() * 0.03;
   const power = Math.max(50, Math.min(200, state.config.spoutPower ?? 100));
   const stream = celeb ? true : false;
   const count = stream ? 96 : 68;
