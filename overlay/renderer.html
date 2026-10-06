@@ -57,6 +57,7 @@ let fxKind = null, fxUntil = 0, flameUntil = 0, prevPose = "";
 let celeb = null;
 let patrol = null, nextPatrolAt = 0, patrolEverySeen = null;
 let taps = [];
+let dragMoving = false;
 let pos = { x: innerWidth - 136, y: 24 };
 let action = null, actionUntil = 0, frameIdx = 0, lastFrame = 0, lastAnim = null;
 let look = null, squashUntil = 0, dragging = null;
@@ -211,19 +212,19 @@ function tick(time) {
     roam.tx = null;
     nextPatrolAt = time + patrolEvery * 60000 * (0.75 + Math.random() * 0.5);
   }
-  if (patrol && !dragging && !menuOpen && !celeb && time >= patrol.nextSpout) {
+  if (patrol && !dragMoving && !menuOpen && !celeb && time >= patrol.nextSpout) {
     patrol.nextSpout = time + 4000 + Math.random() * 4000;
     spoutBurst(1 + Math.floor(Math.random() * Math.max(1, state.config.spoutAmount ?? 3)));
   }
-  if (!patrol && !reduced && !dragging && !menuOpen && !celeb && state.config.visible !== false && (state.activity?.pose ?? "idle") === "idle" && time >= nextPatrolAt) {
+  if (!patrol && patrolEvery > 0 && !reduced && !dragMoving && !menuOpen && !celeb && state.config.visible !== false && (state.activity?.pose ?? "idle") === "idle" && time >= nextPatrolAt) {
     patrol = { until: time + 20000 + Math.random() * 20000, nextSpout: time + 2500 + Math.random() * 3000 };
     roam.x = null; roam.tx = null;
   }
 
   // ---- celebration / roam / home movement ----
   const running = state.activity?.pose === "running";
-  const roaming = ((running && state.config.roam) || !!patrol) && !reduced && !dragging && !menuOpen;
-  if (celeb && !dragging && !menuOpen) {
+  const roaming = ((running && state.config.roam) || !!patrol) && !reduced && !dragMoving && !menuOpen;
+  if (celeb && !dragMoving && !menuOpen) {
     const targetY = 160;
     const roamSpd = Math.max(8, Math.min(240, state.config.roamSpeed ?? 48));
     const toTopSpd = Math.max(25, Math.min(130, Math.round(roamSpd * 0.55)));
@@ -420,6 +421,7 @@ window.addEventListener("mousemove", (e) => {
     if (dragging.moved || Math.hypot(e.screenX - dragging.sx, e.screenY - dragging.sy) > 4) dragging.moved = true;
     if (dragging.moved) {
       look = null;
+      dragMoving = true;
       pos = {
         x: Math.max(0, Math.min(boundsX(), dragging.left + e.screenX - dragging.sx)),
         y: Math.max(0, Math.min(boundsY(), dragging.top + e.screenY - dragging.sy))
@@ -439,16 +441,20 @@ window.addEventListener("mousedown", (e) => {
     return;
   }
   if (!overPet(e)) return;
-  patrol = null;
-  roam.x = null; roam.tx = null;
+  dragMoving = false;
   nextPatrolAt = performance.now() + Math.max(5, state.config.patrolEvery ?? 15) * 60000 * (0.75 + Math.random() * 0.5);
   dragging = { x: e.screenX, y: e.screenY, sx: e.screenX, sy: e.screenY, left: pos.x, top: pos.y, moved: false, flips: 0, lastDx: 0, travel: 0, traveled: false };
 });
 window.addEventListener("mouseup", () => {
   const d = dragging;
   dragging = null;
+  dragMoving = false;
   if (!d) return;
   if (d.moved) {
+    patrol = null;
+    celeb = null;
+    roam.x = null; roam.tx = null;
+    nextPatrolAt = performance.now() + Math.max(5, state.config.patrolEvery ?? 15) * 60000 * (0.75 + Math.random() * 0.5);
     savePosition();
     state.overlayPosition = { x: pos.x / Math.max(1, boundsX()), y: pos.y / Math.max(1, boundsY()) };
     return;
