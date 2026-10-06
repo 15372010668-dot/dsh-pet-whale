@@ -85,7 +85,7 @@ function petH() { return state.config.size * 208 / 192; }
 function boundsX() { return Math.max(0, innerWidth - state.config.size - 16); }
 function boundsY() { return Math.max(0, innerHeight - petH() - 32); }
 function homePos() {
-  const c = state.config.position ?? state.overlayPosition;
+  const c = state.overlayPosition ?? state.config.position;
   return { x: (c ? c.x : 1) * boundsX(), y: (c ? c.y : 0) * boundsY() };
 }
 function petRect() {
@@ -199,8 +199,12 @@ function tick(time) {
     patrolEverySeen = patrolEvery;
     nextPatrolAt = time + patrolEvery * 60000 * (0.75 + Math.random() * 0.5);
   }
-  if (patrol && time >= patrol.until) { patrol = null; roam.tx = null; }
-  if (patrol && time >= patrol.nextSpout) {
+  if (patrol && time >= patrol.until) {
+    patrol = null;
+    roam.tx = null;
+    nextPatrolAt = time + patrolEvery * 60000 * (0.75 + Math.random() * 0.5);
+  }
+  if (patrol && !dragging && !menuOpen && !celeb && time >= patrol.nextSpout) {
     patrol.nextSpout = time + 4000 + Math.random() * 4000;
     spoutBurst(1 + Math.floor(Math.random() * Math.max(1, state.config.spoutAmount ?? 3)));
   }
@@ -273,6 +277,7 @@ function tick(time) {
   }
 
   // ---- pose selection ----
+  if (action && time > actionUntil) action = null;
   let pose = action ?? (roamDir ?? "idle");
   if (!action && !roamDir) {
     const p = state.activity?.pose;
