@@ -194,11 +194,12 @@ function tick(time) {
   const bx = boundsX(), by = boundsY();
 
   // ---- patrol scheduler ----
-  const patrolEvery = state.config.patrolEvery ?? 15;
+  const patrolEvery = state.config.patrolEvery ?? 0;
   if (patrolEverySeen !== patrolEvery) {
     patrolEverySeen = patrolEvery;
     nextPatrolAt = time + patrolEvery * 60000 * (0.75 + Math.random() * 0.5);
   }
+  if (patrol && patrolEvery <= 0) { patrol = null; roam.tx = null; }
   if (patrol && time >= patrol.until) {
     patrol = null;
     roam.tx = null;
@@ -208,7 +209,7 @@ function tick(time) {
     patrol.nextSpout = time + 4000 + Math.random() * 4000;
     spoutBurst(1 + Math.floor(Math.random() * Math.max(1, state.config.spoutAmount ?? 3)));
   }
-  if (!patrol && !reduced && !dragging && !menuOpen && !celeb && state.config.visible !== false && (state.activity?.pose ?? "idle") === "idle" && time >= nextPatrolAt) {
+  if (!patrol && patrolEvery > 0 && !reduced && !dragging && !menuOpen && !celeb && state.config.visible !== false && (state.activity?.pose ?? "idle") === "idle" && time >= nextPatrolAt) {
     patrol = { until: time + 20000 + Math.random() * 20000, nextSpout: time + 2500 + Math.random() * 3000 };
     roam.x = null; roam.tx = null;
   }
