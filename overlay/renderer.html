@@ -159,7 +159,7 @@ function startPatrol() {
   if (reduced || dragging || menuOpen || celeb) return;
   if ((state.activity?.pose ?? "idle") !== "idle") return;
   patrol = { until: performance.now() + 20000 + Math.random() * 20000, nextSpout: performance.now() + 2500 + Math.random() * 3000, manual: true };
-  roam.x = null; roam.tx = null;
+  roam.x = null; roam.tx = null; roamDir = null; look = null;
 }
 function spoutBurst(wavesOverride) {
   if (reduced || state.config.visible === false) return;
@@ -192,6 +192,7 @@ function emitWave() {
 let lastT = 0, roamAcc = 0, roamDir = null;
 function tick(time) {
   requestAnimationFrame(tick);
+  if (dragging && dragging.moved && performance.now() - dragging.lastMove > 2000) finishDrag();
   if (stage.width !== innerWidth || stage.height !== innerHeight) sizeCanvas();
   fitPile();
   const dt = Math.min(48, time - lastT) / 1000;
@@ -428,7 +429,7 @@ window.addEventListener("mousemove", (e) => {
       };
       roam.x = null; roam.tx = null;
     }
-    dragging.x = e.screenX; dragging.y = e.screenY;
+    dragging.x = e.screenX; dragging.y = e.screenY; dragging.lastMove = performance.now();
   } else if (!action && state.pet.version === 2 && state.activity?.pose !== "running") {
     const cell = lookCell(e.clientX - pos.x - state.config.size / 2, e.clientY - pos.y - petH() / 2);
     if ((look?.row ?? -1) !== (cell?.row ?? -1) || (look?.col ?? -1) !== (cell?.col ?? -1)) look = cell;
@@ -443,9 +444,9 @@ window.addEventListener("mousedown", (e) => {
   if (!overPet(e)) return;
   dragMoving = false;
   nextPatrolAt = performance.now() + Math.max(5, state.config.patrolEvery ?? 15) * 60000 * (0.75 + Math.random() * 0.5);
-  dragging = { x: e.screenX, y: e.screenY, sx: e.screenX, sy: e.screenY, left: pos.x, top: pos.y, moved: false, flips: 0, lastDx: 0, travel: 0, traveled: false };
+  dragging = { x: e.screenX, y: e.screenY, sx: e.screenX, sy: e.screenY, left: pos.x, top: pos.y, moved: false, flips: 0, lastDx: 0, travel: 0, traveled: false, lastMove: performance.now() };
 });
-window.addEventListener("mouseup", () => {
+function finishDrag() {
   const d = dragging;
   dragging = null;
   dragMoving = false;
@@ -462,8 +463,11 @@ window.addEventListener("mouseup", () => {
   const now = performance.now();
   taps = taps.filter((t0) => now - t0 < 3000);
   taps.push(now);
-  if (taps.length >= 7) { taps = []; startPatrol(); return; }
+  if (taps.length >= 7) { taps = []; startPatrol(); }
   doPat();
+}
+window.addEventListener("mouseup", () => {
+  finishDrag();
 });
 window.addEventListener("dblclick", (e) => {
   if (!menuOpen && overPet(e)) { perform("jumping"); e.preventDefault(); }

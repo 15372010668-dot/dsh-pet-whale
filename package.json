@@ -27,6 +27,7 @@
     "assets/screenshots/*.png",
     "skills",
     "docs",
+    "!docs/images/*.mp4",
     "overlay",
     "cordis.patch.yml",
     "README.md",
