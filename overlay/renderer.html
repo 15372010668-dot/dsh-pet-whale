@@ -56,6 +56,7 @@ let failCount = 0, menuOpen = false;
 let fxKind = null, fxUntil = 0, flameUntil = 0, prevPose = "";
 let celeb = null;
 let patrol = null, nextPatrolAt = 0, patrolEverySeen = null;
+let taps = [];
 let pos = { x: innerWidth - 136, y: 24 };
 let action = null, actionUntil = 0, frameIdx = 0, lastFrame = 0, lastAnim = null;
 let look = null, squashUntil = 0, dragging = null;
@@ -152,6 +153,12 @@ function doPat() {
   }
   for (let i = 0; i < 3; i++)
     hearts.push({ x: pos.x + state.config.size * (0.3 + 0.2 * i), y: pos.y + petH() * 0.25, vy: -60 - Math.random() * 30, life: 1, delay: i * 0.13 });
+}
+function startPatrol() {
+  if (reduced || dragging || menuOpen || celeb) return;
+  if ((state.activity?.pose ?? "idle") !== "idle") return;
+  patrol = { until: performance.now() + 20000 + Math.random() * 20000, nextSpout: performance.now() + 2500 + Math.random() * 3000, manual: true };
+  roam.x = null; roam.tx = null;
 }
 function spoutBurst(wavesOverride) {
   if (reduced || state.config.visible === false) return;
@@ -444,7 +451,13 @@ window.addEventListener("mouseup", () => {
   if (d.moved) {
     savePosition();
     state.overlayPosition = { x: pos.x / Math.max(1, boundsX()), y: pos.y / Math.max(1, boundsY()) };
-  } else doPat();
+    return;
+  }
+  const now = performance.now();
+  taps = taps.filter((t0) => now - t0 < 3000);
+  taps.push(now);
+  if (taps.length >= 7) { taps = []; startPatrol(); return; }
+  doPat();
 });
 window.addEventListener("dblclick", (e) => {
   if (!menuOpen && overPet(e)) { perform("jumping"); e.preventDefault(); }
