@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.1] - 2026-10-06
+
+- **Fixed:** the task-status bubble now always renders **below** the whale —
+  it previously flipped above (covering content) whenever the whale sat near
+  the top of the screen. Applies to the in-page and desktop-overlay modes.
+- **Fixed (desktop overlay):** the whale no longer gets stuck in a waving/
+  jumping pose forever after a single pat; its home position no longer
+  follows the in-page whale's saved spot (the two are independent now);
+  patrol water sprays pause while the menu is open or while dragging; and a
+  finished patrol now properly ends — previously one could re-trigger forever
+  and the whale would never swim home.
+- **Changed:** water droplets originate from the blowhole in the artwork
+  (28% sprite width) instead of the body center.
+- **Note for upgraders:** the DSH version exemption is keyed by
+  `name@version`:
+  `dsh plugin --profile desktop allow-version dsh-pet-whale@1.2.1 --dsh-version <your dsh version> --accept-risk`
+
 ## [1.2.0] - 2026-10-04
 
 - **New: auto patrol.** The whale now lives in the **top-right corner** by

@@ -1,6 +1,6 @@
 {
   "name": "dsh-pet-whale",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "license": "Apache-2.0",
   "description": "Independent pixel blue-whale desktop pet plugin for DeepSeek Harness. Descended from @michengai/dsh-codex-pet via dsh-bluewhale-pet; dead code removed, own data dir and routes.",
   "type": "module",
